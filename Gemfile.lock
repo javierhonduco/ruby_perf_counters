@@ -1,0 +1,33 @@
+PATH
+  remote: .
+  specs:
+    perf_counters (0.1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    benchmark-ips (2.7.2)
+    kalibera (0.1)
+      memoist (~> 0.11.0)
+      rbzip2 (~> 0.2.0)
+    memoist (0.11.0)
+    minitest (5.10.3)
+    rake (10.5.0)
+    rake-compiler (1.0.4)
+      rake
+    rbzip2 (0.2.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  benchmark-ips (~> 2.7.2)
+  bundler (~> 1.16)
+  kalibera
+  minitest (~> 5.0)
+  perf_counters!
+  rake (~> 10.0)
+  rake-compiler
+
+BUNDLED WITH
+   1.16.0
