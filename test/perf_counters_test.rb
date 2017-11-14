@@ -10,9 +10,9 @@ class PerfCountersTest < Minitest::Test
       Event::INSTRUCTIONS,
       Event::CPU_CYCLES,
       Event::BRANCH_INSTRUCTIONS,
-      Event::PERF_COUNT_HW_CACHE_MISSES,
+      Event::CACHE_MISSES,
       Event::PAGE_FAULTS_MIN,
-      Event::SW_PAGE_FAULTS_MAJ,
+      Event::PAGE_FAULTS_MAJ,
     ]
 
     perf = PerfCounters::Measurement.new(
@@ -27,7 +27,7 @@ class PerfCountersTest < Minitest::Test
 
     [
       :instructions, :cpu_cycles, :branch_instructions,
-      :perf_count_hw_cache_misses, :page_faults_min, :sw_page_faults_maj,
+      :cache_misses, :page_faults_min, :page_faults_maj,
     ].each do |event|
       refute_nil results[event]
       assert_kind_of Numeric, results[event]

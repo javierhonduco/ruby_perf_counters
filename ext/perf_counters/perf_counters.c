@@ -50,9 +50,8 @@ measurement_start(VALUE self) {
   for (int i = 0; i < rb_events_len; i++) {
     VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
     // extract type, value
-    VALUE type = rb_const_get_at(rb_current_array_element, rb_intern("TYPE"));
-    VALUE config =
-        rb_const_get_at(rb_current_array_element, rb_intern("VALUE"));
+    VALUE type = rb_funcall(rb_current_array_element, rb_intern("type"), 0);
+    VALUE config = rb_funcall(rb_current_array_element, rb_intern("value"), 0);
 
     memset(&pe, 0, sizeof(struct perf_event_attr));
     pe.type = NUM2INT(type);
@@ -112,7 +111,7 @@ measurement_stop(VALUE self) {
   xfree(ids);
 
   if (read_bytes == -1) {
-    rb_raise(rb_eArgError, "reading the performance counters failed");
+    rb_raise(rb_eArgError, "read of the performance counters failed");
     return Qnil;
   }
 
@@ -123,14 +122,9 @@ measurement_stop(VALUE self) {
   for (int i = 0; i < rb_events_len; i++) {
     VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
 
-    // Event::INSTRUCTIONS.name.split('::').last.downcase
     // TODO: would it make sense to have this in a ruby function?
     VALUE rb_name = rb_funcall(rb_current_array_element, rb_intern("name"), 0);
-    VALUE rb_split =
-        rb_funcall(rb_name, rb_intern("split"), 1, rb_str_new_cstr("::"));
-    VALUE rb_last = rb_funcall(rb_split, rb_intern("last"), 0);
-    VALUE rb_downcase = rb_funcall(rb_last, rb_intern("downcase"), 0);
-    VALUE rb_symbol = rb_funcall(rb_downcase, rb_intern("to_sym"), 0);
+    VALUE rb_symbol = rb_funcall(rb_name, rb_intern("to_sym"), 0);
 
     rb_hash_aset(rb_hash_results, rb_symbol, INT2NUM(rf->values[i].value));
   }

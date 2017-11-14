@@ -1,39 +1,20 @@
 require 'perf_counters/version'
 require 'perf_counters/perf_counters'
 
+Counter = Struct.new(:name, :type, :value)
+
 module Event
   module Type
     HARDWARE = 0
     SOFTWARE = 1
   end
 
-  module CPU_CYCLES
-    TYPE = Type::HARDWARE
-    VALUE = 0
-  end
-  module INSTRUCTIONS
-    TYPE = Type::HARDWARE
-    VALUE = 1
-  end
-  module PERF_COUNT_HW_CACHE_MISSES
-    TYPE = Type::HARDWARE
-    VALUE = 3
-  end
-
-  module BRANCH_INSTRUCTIONS
-    TYPE = Type::HARDWARE
-    VALUE = 4
-  end
-
-  module PAGE_FAULTS_MIN
-    TYPE = Type::SOFTWARE
-    VALUE = 5
-  end
-
-  module SW_PAGE_FAULTS_MAJ
-    TYPE = Type::SOFTWARE
-    VALUE = 6
-  end
+  CPU_CYCLES          = Counter.new(:cpu_cycles, Type::HARDWARE, 0)
+  INSTRUCTIONS        = Counter.new(:instructions, Type::HARDWARE, 1)
+  CACHE_MISSES        = Counter.new(:cache_misses, Type::HARDWARE, 3)
+  BRANCH_INSTRUCTIONS = Counter.new(:branch_instructions, Type::HARDWARE, 4)
+  PAGE_FAULTS_MIN     = Counter.new(:page_faults_min, Type::SOFTWARE, 5)
+  PAGE_FAULTS_MAJ     = Counter.new(:page_faults_maj, Type::SOFTWARE, 6)
 end
 
 module PerfCounters
