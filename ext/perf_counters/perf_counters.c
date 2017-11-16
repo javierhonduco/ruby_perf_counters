@@ -11,7 +11,7 @@
 #define raise_on_error(function_call)                                          \
   do {                                                                         \
     if (function_call) {                                                       \
-      rb_raise(rb_eArgError, "ioctl call failed");                             \
+      rb_raise(rb_eArgError, "ioctl call failed in line %d", __LINE__);        \
     }                                                                          \
   } while (0);
 
@@ -22,9 +22,12 @@ struct read_format {
     uint64_t id;
   } values[];
 };
-
-int started = 0;
 struct perf_event_attr pe;
+// TODO: Get rid of this global state without losing too much performance
+// `SEED=18831 | 21337 rake` reproduces a problem in tests when
+// test_event_that_doesn_not_exist_raises_exception runs before
+// test_multiple_stop_before_start_do_nothing
+int started = 0;
 int *fds;
 uint64_t *ids;
 
@@ -47,7 +50,7 @@ measurement_start(VALUE self) {
   fds = xmalloc(sizeof(int) * rb_events_len);
   ids = xmalloc(sizeof(uint64_t) * rb_events_len);
 
-  for (int i = 0; i < rb_events_len; i++) {
+  for (unsigned int i = 0; i < rb_events_len; i++) {
     VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
     // extract type, value
     VALUE type = rb_funcall(rb_current_array_element, rb_intern("type"), 0);
@@ -70,8 +73,11 @@ measurement_start(VALUE self) {
     }
 
     if (current_fd == -1) {
-      rb_raise(rb_eArgError, "perf_event_open failed type=%d, config=%d", type,
-               config);
+      rb_raise(rb_eArgError, "perf_event_open failed type=%d, config=%d. Check "
+                             "your Linux kernel's version source code to see "
+                             "if this event exists in "
+                             "'include/uapi/linux/perf_event.h'",
+               NUM2INT(type), NUM2INT(config));
     }
 
     fds[i] = current_fd;
@@ -104,7 +110,7 @@ measurement_stop(VALUE self) {
       ioctl(leader(fds), PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP));
   ssize_t read_bytes = read(leader(fds), buffer, sizeof(buffer));
 
-  for (int i = 0; i < rb_events_len; i++) {
+  for (unsigned int i = 0; i < rb_events_len; i++) {
     close(fds[i]);
   }
   xfree(fds);
@@ -115,11 +121,10 @@ measurement_stop(VALUE self) {
     return Qnil;
   }
 
-  uint64_t results[rb_events_len];
   VALUE rb_hash_results = rb_hash_new();
 
   // Assuming here that the events are in the same order they are requested
-  for (int i = 0; i < rb_events_len; i++) {
+  for (unsigned int i = 0; i < rb_events_len; i++) {
     VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
 
     // TODO: would it make sense to have this in a ruby function?
@@ -129,7 +134,7 @@ measurement_stop(VALUE self) {
     rb_hash_aset(rb_hash_results, rb_symbol, INT2NUM(rf->values[i].value));
   }
 
-  started = 1;
+  started = 0;
   return rb_hash_results;
 }
 

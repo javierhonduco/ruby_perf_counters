@@ -12,12 +12,12 @@ class PerfCountersTest < Minitest::Test
       Event::BRANCH_INSTRUCTIONS,
       Event::CACHE_MISSES,
       Event::PAGE_FAULTS_MIN,
-      Event::PAGE_FAULTS_MAJ,
+      Event::PAGE_FAULTS_MAJ
     ]
 
     perf = PerfCounters::Measurement.new(
       exclude_kernel: true,
-      events: events,
+      events: events
     )
     perf.start
     results = perf.stop
@@ -25,9 +25,9 @@ class PerfCountersTest < Minitest::Test
     assert_kind_of Hash, results
     assert_equal 6, results.size
 
-    [
-      :instructions, :cpu_cycles, :branch_instructions,
-      :cache_misses, :page_faults_min, :page_faults_maj,
+    %i[
+      instructions cpu_cycles branch_instructions
+      cache_misses page_faults_min page_faults_maj
     ].each do |event|
       refute_nil results[event]
       assert_kind_of Numeric, results[event]
@@ -37,9 +37,55 @@ class PerfCountersTest < Minitest::Test
   end
 
   def test_yield_works
-    perf = PerfCounters.measure(events: [Event::INSTRUCTIONS]) do
+    PerfCounters.measure(events: [Event::INSTRUCTIONS]) do
       'allocate_some_memory' * 100
     end
+  end
+
+  def test_other_events
+    events = [
+      Event::CPU_CLOCK,
+      Event::PAGE_FAULTS,
+      Event::CONTEXT_SWITCHES,
+      Event::BPF_OUTPUT
+    ]
+    PerfCounters.measure(events: events) do
+      :lol
+    end
+  end
+
+  def test_event_that_doesn_not_exist_raises_exception
+    skip 'Skipping because of global state :/'
+
+    fake_event = Counter.new(:lol, Event::Type::SOFTWARE, 11)
+    perf = PerfCounters::Measurement.new(events: [fake_event])
+    assert_raises(ArgumentError) do
+      perf.start
+    end
+  end
+
+  def test_multiple_stop_before_start_do_nothing
+    perf = PerfCounters::Measurement.new(events: [Event::INSTRUCTIONS])
+    assert_nil perf.stop
+    assert_nil perf.stop
+  end
+
+  def test_does_not_leak_fds
+    fds_count = -> () { Dir.glob('/proc/self/fd/*').count }
+    events = [
+      Event::CPU_CLOCK,
+      Event::PAGE_FAULTS,
+      Event::CONTEXT_SWITCHES,
+      Event::BPF_OUTPUT
+    ]
+
+    fds_count_before = fds_count.call
+    100.times do
+      PerfCounters.measure(events: events) { ; }
+    end
+    fds_count_after = fds_count.call
+
+    assert_equal fds_count_before, fds_count_after
   end
 
   if ENV['STRESS_TEST']
