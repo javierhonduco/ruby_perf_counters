@@ -57,6 +57,18 @@ module PerfCounters
         [event.name, event.type, event.value]
       end
     end
+
+    def start
+      __start
+    end
+
+    def stop
+      return nil unless result_array = __stop
+
+      result_array.each_with_object({}).with_index do |(result, final), i|
+        final[events[i].name] = result
+      end
+    end
   end
 
   def self.measure(*args)
