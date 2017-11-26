@@ -30,7 +30,7 @@ class PerfCountersTest < Minitest::Test
       cache_misses page_faults_min page_faults_maj
     ].each do |event|
       refute_nil results[event]
-      assert_kind_of Numeric, results[event]
+      assert_kind_of Integer, results[event]
     end
 
     results
