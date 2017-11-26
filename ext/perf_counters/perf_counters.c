@@ -11,6 +11,9 @@
 #define raise_on_error(function_call)                                          \
   do {                                                                         \
     if (function_call) {                                                       \
+      xfree(fds);                                                              \
+      xfree(ids);                                                              \
+      started = 0;                                                             \
       rb_raise(rb_eArgError, "ioctl call failed in line %d", __LINE__);        \
     }                                                                          \
   } while (0);
@@ -23,10 +26,6 @@ struct read_format {
   } values[];
 };
 struct perf_event_attr pe;
-// TODO: Get rid of this global state without losing too much performance
-// `SEED=18831 | 21337 rake` reproduces a problem in tests when
-// test_event_that_doesn_not_exist_raises_exception runs before
-// test_multiple_stop_before_start_do_nothing
 int started = 0;
 int *fds;
 uint64_t *ids;
@@ -73,6 +72,10 @@ measurement_start(VALUE self) {
     }
 
     if (current_fd == -1) {
+      xfree(fds);
+      xfree(ids);
+      started = 0;
+
       rb_raise(rb_eArgError, "perf_event_open failed type=%d, config=%d. Check "
                              "your Linux kernel's version source code to see "
                              "if this event exists in "

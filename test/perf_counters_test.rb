@@ -54,18 +54,19 @@ class PerfCountersTest < Minitest::Test
     end
   end
 
-  def test_event_that_doesn_not_exist_raises_exception
-    skip 'Skipping because of global state :/'
-
+  def test_event_that_does_not_exist_raises_exception
     fake_event = Counter.new(:lol, Event::Type::SOFTWARE, 11)
     perf = PerfCounters::Measurement.new(events: [fake_event])
+
     assert_raises(ArgumentError) do
       perf.start
     end
+    assert_nil perf.stop
   end
 
   def test_multiple_stop_before_start_do_nothing
     perf = PerfCounters::Measurement.new(events: [Event::INSTRUCTIONS])
+
     assert_nil perf.stop
     assert_nil perf.stop
   end
@@ -86,6 +87,19 @@ class PerfCountersTest < Minitest::Test
     fds_count_after = fds_count.call
 
     assert_equal fds_count_before, fds_count_after
+  end
+
+  def test_bad_event_types
+    bad_typed_event = Counter.new(12, {a: :b}, [:a, :b])
+    perf = PerfCounters::Measurement.new(events: [bad_typed_event])
+
+    assert_raises(TypeError) do
+      perf.start
+    end
+
+    assert_raises(ArgumentError) do
+      perf.stop
+    end
   end
 
   if ENV['STRESS_TEST']
