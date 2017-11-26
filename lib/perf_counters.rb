@@ -53,6 +53,9 @@ module PerfCounters
     def initialize(events: [], exclude_kernel: true)
       @events = events
       @exclude_kernel = exclude_kernel
+      @__events = @events.flat_map do |event|
+        [event.name, event.type, event.value]
+      end
     end
   end
 

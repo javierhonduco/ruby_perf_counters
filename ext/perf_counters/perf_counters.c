@@ -51,10 +51,10 @@ measurement_start(VALUE self) {
   ids = xmalloc(sizeof(uint64_t) * rb_events_len);
 
   for (unsigned int i = 0; i < rb_events_len; i++) {
-    VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
+    VALUE rb__events = rb_iv_get(self, "@__events");
     // extract type, value
-    VALUE type = rb_funcall(rb_current_array_element, rb_intern("type"), 0);
-    VALUE config = rb_funcall(rb_current_array_element, rb_intern("value"), 0);
+    VALUE type = rb_ary_entry(rb__events, (i * 3) + 1);
+    VALUE config = rb_ary_entry(rb__events, (i * 3) + 2);
 
     memset(&pe, 0, sizeof(struct perf_event_attr));
     pe.type = NUM2INT(type);
@@ -125,11 +125,8 @@ measurement_stop(VALUE self) {
 
   // Assuming here that the events are in the same order they are requested
   for (unsigned int i = 0; i < rb_events_len; i++) {
-    VALUE rb_current_array_element = rb_ary_entry(rb_events, i);
-
-    // TODO: would it make sense to have this in a ruby function?
-    VALUE rb_name = rb_funcall(rb_current_array_element, rb_intern("name"), 0);
-    VALUE rb_symbol = rb_funcall(rb_name, rb_intern("to_sym"), 0);
+    VALUE rb__events = rb_iv_get(self, "@__events");
+    VALUE rb_symbol = rb_ary_entry(rb__events, (i * 3) + 0);
 
     rb_hash_aset(rb_hash_results, rb_symbol, INT2NUM(rf->values[i].value));
   }
