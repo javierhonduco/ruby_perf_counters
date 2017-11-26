@@ -22,6 +22,10 @@ perf.stop
 
 ### Contributing
 
+#### Requirements
+A modern Linux machine (unfortunately, most VMs don't virtualize perf counters)
+with `perf` installed.
+
 #### Install
 ```shell
 $ bundle install
