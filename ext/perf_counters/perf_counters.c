@@ -7,8 +7,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#define leader(array) (array[0])
-#define raise_on_error(function_call)                                          \
+#define LEADER(array) (array[0])
+#define RAISE_ON_ERROR(function_call)                                          \
   do {                                                                         \
     if (function_call) {                                                       \
       xfree(fds);                                                              \
@@ -68,7 +68,7 @@ measurement_start(VALUE self) {
     if (i == 0) {
       current_fd = perf_event_open(&pe, 0, -1, -1, 0);
     } else {
-      current_fd = perf_event_open(&pe, 0, -1, leader(fds), 0);
+      current_fd = perf_event_open(&pe, 0, -1, LEADER(fds), 0);
     }
 
     if (current_fd == -1) {
@@ -84,12 +84,12 @@ measurement_start(VALUE self) {
     }
 
     fds[i] = current_fd;
-    raise_on_error(ioctl(current_fd, PERF_EVENT_IOC_ID, &ids[i]));
+    RAISE_ON_ERROR(ioctl(current_fd, PERF_EVENT_IOC_ID, &ids[i]));
   }
 
-  raise_on_error(ioctl(leader(fds), PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP));
-  raise_on_error(
-      ioctl(leader(fds), PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP));
+  RAISE_ON_ERROR(ioctl(LEADER(fds), PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP));
+  RAISE_ON_ERROR(
+      ioctl(LEADER(fds), PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP));
 
   return Qtrue;
 }
@@ -109,9 +109,9 @@ measurement_stop(VALUE self) {
   memset(buffer, 0, buffer_size);
   struct read_format *rf = (struct read_format *)buffer;
 
-  raise_on_error(
-      ioctl(leader(fds), PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP));
-  ssize_t read_bytes = read(leader(fds), buffer, sizeof(buffer));
+  RAISE_ON_ERROR(
+      ioctl(LEADER(fds), PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP));
+  ssize_t read_bytes = read(LEADER(fds), buffer, sizeof(buffer));
 
   for (unsigned int i = 0; i < rb_events_len; i++) {
     close(fds[i]);
