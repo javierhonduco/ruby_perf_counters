@@ -1,8 +1,10 @@
 #include "perf_counters.h"
 #include <asm/unistd.h>
+#include <errno.h>
 #include <linux/perf_event.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -10,11 +12,12 @@
 #define LEADER(array) (array[0])
 #define RAISE_ON_ERROR(function_call)                                          \
   do {                                                                         \
-    if (function_call) {                                                       \
+    if (function_call == -1) {                                                 \
       xfree(fds);                                                              \
       xfree(ids);                                                              \
       started = 0;                                                             \
-      rb_raise(rb_eArgError, "ioctl call failed in line %d", __LINE__);        \
+      rb_raise(rb_eArgError, "ioctl call failed in line %d with '%s'",         \
+               __LINE__, strerror(errno));                                     \
     }                                                                          \
   } while (0);
 
