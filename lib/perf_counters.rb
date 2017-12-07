@@ -48,11 +48,15 @@ end
 
 module PerfCounters
   class Measurement
-    attr_accessor :events, :exclude_kernel
+    attr_accessor :events, :exclude_kernel, :disabled, :exclude_hv
 
-    def initialize(events: [], exclude_kernel: true)
+    def initialize(events: [], exclude_kernel: true, disabled: true, exclude_hv: true)
       @events = events
+
       @exclude_kernel = exclude_kernel
+      @disabled = disabled
+      @exclude_hv = exclude_hv
+
       @__events = @events.flat_map do |event|
         [event.name, event.type, event.value]
       end

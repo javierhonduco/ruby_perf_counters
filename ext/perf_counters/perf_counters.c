@@ -70,9 +70,9 @@ measurement_start(VALUE self) {
     pe.type = NUM2INT(type);
     pe.config = NUM2INT(config);
     pe.size = sizeof(struct perf_event_attr);
-    pe.disabled = 1;
+    pe.disabled = rb_iv_get(self, "@disabled") == Qtrue ? 1 : 0;
     pe.exclude_kernel = rb_iv_get(self, "@exclude_kernel") == Qtrue ? 1 : 0;
-    pe.exclude_hv = 1;
+    pe.exclude_hv = rb_iv_get(self, "@exclude_hv") == Qtrue ? 1 : 0;
     pe.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
     int current_fd;
