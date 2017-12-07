@@ -2,6 +2,9 @@
 
 Experimental, do not use in production, could blow up your Rubies.
 
+### What
+Read the CPU's performance counters from Ruby using `perf_event_open(2)`.
+
 ### Usage
 ```ruby
 require 'perf_counters'
@@ -28,7 +31,7 @@ with `perf` installed.
 
 #### Install
 ```shell
-$ bundle install
+$ bin/setup
 ```
 
 #### Compile

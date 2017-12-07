@@ -13,9 +13,9 @@
 #define RAISE_ON_ERROR(function_call)                                          \
   do {                                                                         \
     if (function_call == -1) {                                                 \
-      xfree(fds);                                                              \
-      xfree(ids);                                                              \
-      started = 0;                                                             \
+      state->started = 0;                                                      \
+      xfree(state->fds);                                                       \
+      xfree(state->ids);                                                       \
       rb_raise(rb_eArgError, "ioctl call failed in line %d with '%s'",         \
                __LINE__, strerror(errno));                                     \
     }                                                                          \
@@ -29,28 +29,36 @@ struct read_format {
   } values[];
 };
 struct perf_event_attr pe;
-int started = 0;
-int *fds;
-uint64_t *ids;
+struct perf_state {
+  int started;
+  int *fds;
+  uint64_t *ids;
+};
 
-// static?
 static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
                             int cpu, int group_fd, unsigned long flags) {
   return syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
 }
 
+void dealloc_state(struct perf_state *state) { xfree(state); }
+
+VALUE
+alloc_state(VALUE klass) {
+  struct perf_state *state = xmalloc(sizeof(struct perf_state));
+  state->started = 0;
+  return Data_Wrap_Struct(klass, NULL, dealloc_state, state);
+}
+
 VALUE
 measurement_start(VALUE self) {
-  started = 1;
   VALUE rb_events = rb_iv_get(self, "@events");
   size_t rb_events_len = RARRAY_LEN(rb_events);
-  // TODO:
-  // - figure out what happens if somewhere in the stack a exception is raised
-  // and what impact has in a native extension (e.g: not freeing resources?)
-  // - can we statically allocate this? Would it make sense
-  // performance-wise?
-  fds = xmalloc(sizeof(int) * rb_events_len);
-  ids = xmalloc(sizeof(uint64_t) * rb_events_len);
+
+  struct perf_state *state;
+  Data_Get_Struct(self, struct perf_state, state);
+  state->started = 1;
+  state->fds = xmalloc(sizeof(int) * rb_events_len);
+  state->ids = xmalloc(sizeof(uint64_t) * rb_events_len);
 
   for (unsigned int i = 0; i < rb_events_len; i++) {
     VALUE rb__events = rb_iv_get(self, "@__events");
@@ -71,13 +79,13 @@ measurement_start(VALUE self) {
     if (i == 0) {
       current_fd = perf_event_open(&pe, 0, -1, -1, 0);
     } else {
-      current_fd = perf_event_open(&pe, 0, -1, LEADER(fds), 0);
+      current_fd = perf_event_open(&pe, 0, -1, LEADER(state->fds), 0);
     }
 
     if (current_fd == -1) {
-      xfree(fds);
-      xfree(ids);
-      started = 0;
+      state->started = 0;
+      xfree(state->fds);
+      xfree(state->ids);
 
       rb_raise(rb_eArgError, "perf_event_open failed type=%d, config=%d. Check "
                              "your Linux kernel's version source code to see "
@@ -86,20 +94,24 @@ measurement_start(VALUE self) {
                NUM2INT(type), NUM2INT(config));
     }
 
-    fds[i] = current_fd;
-    RAISE_ON_ERROR(ioctl(current_fd, PERF_EVENT_IOC_ID, &ids[i]));
+    state->fds[i] = current_fd;
+    RAISE_ON_ERROR(ioctl(current_fd, PERF_EVENT_IOC_ID, &state->ids[i]));
   }
 
-  RAISE_ON_ERROR(ioctl(LEADER(fds), PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP));
   RAISE_ON_ERROR(
-      ioctl(LEADER(fds), PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP));
+      ioctl(LEADER(state->fds), PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP));
+  RAISE_ON_ERROR(
+      ioctl(LEADER(state->fds), PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP));
 
   return Qtrue;
 }
 
 VALUE
 measurement_stop(VALUE self) {
-  if (!started) {
+  struct perf_state *state;
+  Data_Get_Struct(self, struct perf_state, state);
+
+  if (!state->started) {
     return Qnil;
   }
 
@@ -113,14 +125,14 @@ measurement_stop(VALUE self) {
   struct read_format *rf = (struct read_format *)buffer;
 
   RAISE_ON_ERROR(
-      ioctl(LEADER(fds), PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP));
-  ssize_t read_bytes = read(LEADER(fds), buffer, sizeof(buffer));
+      ioctl(LEADER(state->fds), PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP));
+  ssize_t read_bytes = read(LEADER(state->fds), buffer, sizeof(buffer));
 
   for (unsigned int i = 0; i < rb_events_len; i++) {
-    close(fds[i]);
+    close(state->fds[i]);
   }
-  xfree(fds);
-  xfree(ids);
+  xfree(state->fds);
+  xfree(state->ids);
 
   if (read_bytes == -1) {
     rb_raise(rb_eArgError, "read of the performance counters failed");
@@ -137,7 +149,7 @@ measurement_stop(VALUE self) {
     rb_hash_aset(rb_hash_results, rb_symbol, INT2NUM(rf->values[i].value));
   }
 
-  started = 0;
+  state->started = 0;
   return rb_hash_results;
 }
 
@@ -146,6 +158,7 @@ void Init_perf_counters(void) {
 
   VALUE rb_Measurement =
       rb_define_class_under(rb_mPerfCounters, "Measurement", rb_cObject);
+  rb_define_alloc_func(rb_Measurement, alloc_state);
   rb_define_method(rb_Measurement, "start", measurement_start, 0);
   rb_define_method(rb_Measurement, "stop", measurement_stop, 0);
 }
