@@ -139,18 +139,15 @@ measurement_stop(VALUE self) {
     return Qnil;
   }
 
-  VALUE rb_hash_results = rb_hash_new();
+  VALUE rb_array_result = rb_ary_new();
 
   // Assuming here that the events are in the same order they are requested
   for (unsigned int i = 0; i < rb_events_len; i++) {
-    VALUE rb__events = rb_iv_get(self, "@__events");
-    VALUE rb_symbol = rb_ary_entry(rb__events, (i * 3) + 0);
-
-    rb_hash_aset(rb_hash_results, rb_symbol, INT2NUM(rf->values[i].value));
+    rb_ary_push(rb_array_result, INT2NUM(rf->values[i].value));
   }
 
   state->started = 0;
-  return rb_hash_results;
+  return rb_array_result;
 }
 
 void Init_perf_counters(void) {
@@ -159,6 +156,6 @@ void Init_perf_counters(void) {
   VALUE rb_Measurement =
       rb_define_class_under(rb_mPerfCounters, "Measurement", rb_cObject);
   rb_define_alloc_func(rb_Measurement, alloc_state);
-  rb_define_method(rb_Measurement, "start", measurement_start, 0);
-  rb_define_method(rb_Measurement, "stop", measurement_stop, 0);
+  rb_define_method(rb_Measurement, "__start", measurement_start, 0);
+  rb_define_method(rb_Measurement, "__stop", measurement_stop, 0);
 }
