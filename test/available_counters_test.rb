@@ -10,7 +10,8 @@ class AvailablePerfCountersTest < Minitest::Test
     all_perf_counters = PerfCounters::AvailableCounters::Hardware.all
     assert_operator all_perf_counters, :include?, 'instructions'
   end
-  def test_all_includes_a_valid_perf_counter
+
+  def test_type_of_specific_hardware_event
     event_data = PerfCounters::AvailableCounters::Hardware.event(
       'instructions'
     )
