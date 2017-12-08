@@ -6,26 +6,18 @@ require 'perf_counters/version'
 Gem::Specification.new do |spec|
   spec.name          = 'perf_counters'
   spec.version       = PerfCounters::VERSION
-  spec.authors       = ['Write your name']
-  # spec.email         = ["TODO: Write your email address"]
+  spec.authors       = ['Javier Honduvilla Coto']
+  spec.email         = ['javierhonduco@gmail.com']
 
-  spec.summary       = 'Write a short summary, because RubyGems requires one.'
-  # spec.description   = %q{TODO: Write a longer description or delete this line.}
-  # spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.summary       = "Read the CPU's performance counters perf_event_open(2)"
+  spec.description   = spec.summary
+  spec.homepage      = 'https://github.com/javierhonduco/ruby_perf_counters'
   spec.license       = 'MIT'
-
-  # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
-  # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com'"
-  else
-    raise 'RubyGems 2.0 or newer is required to protect against ' \
-      'public gem pushes.'
-  end
 
   spec.files = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
   end
+
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
